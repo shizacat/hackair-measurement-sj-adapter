@@ -1,0 +1,6 @@
+*.pyc
+vagrant
+.vagrant/*
+.sonar
+/tmp
+source/venv
