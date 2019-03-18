@@ -5,9 +5,11 @@ Simple Json адаптер для Grafana, чтобы отображать да�
 # Example
 
 ```bash
-./service.py  --location "37.76186049,59.07472384|38.03685665,59.16516521"
+./service.py  --location "10,20|20,30"
 ```
 
-# TODO
+# Build
 
-- Добавить токен для авторизации
+```bash
+docker build -t sj-hackair -f contribute/docker/Dockerfile .
+```
