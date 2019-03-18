@@ -5,6 +5,7 @@
 Usage:
     service_callback.py --location=<location>
                         [--port=<port>]
+                        [--host=<host>]
     service_callback.py (-h | --help)
 
 Options:
@@ -13,6 +14,9 @@ Options:
     --port <port>
         Номер порта, на котором будет работать http сервер.
         [default: 8888]
+
+    --host <host>
+        Адрес на который будет слушать служба.
 
     --location <location>
         Квадрат, в котором производить поиск измерений
@@ -36,9 +40,10 @@ logger.setLevel(logging.DEBUG)
 
 class Service:
 
-    def __init__(self, port: int, location: str, token: str = None):
+    def __init__(self, port: int, location: str, host: str = '0.0.0.0'):
         self.port = port
         self.location = location
+        self.host = host
 
         self.app = aiohttp.web.Application()
 
@@ -50,7 +55,7 @@ class Service:
         self.app.router.add_route('POST', '/query', self.handle_query)
 
     def start(self):
-        aiohttp.web.run_app(self.app, port=self.port)
+        aiohttp.web.run_app(self.app, port=self.port, host=self.host)
 
     async def handle_health(self, request):
         '''Проверить здоровье службы '''
@@ -171,6 +176,7 @@ if __name__ == "__main__":
     arguments = docopt(__doc__)
 
     location = arguments["--location"]
+    host = arguments["--host"]
 
     # Http
     try:
@@ -180,7 +186,7 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     # Запуск службы
-    srv = Service(port=port, location=location)
+    srv = Service(port=port, location=location, host=host)
 
     try:
         srv.start()
