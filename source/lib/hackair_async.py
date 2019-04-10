@@ -188,7 +188,7 @@ class HackAIR:
         result = []
 
         cstep = int((dt_end - dt_start) / self.interval_request)
-        if cstep > 100:
+        if cstep > 1000:
             raise ValueError("Слишком большой интервал")
 
         is_first = 0
