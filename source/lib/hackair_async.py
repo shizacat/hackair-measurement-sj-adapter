@@ -23,7 +23,10 @@ class HackAIR:
         await self.session.close()
 
     async def get_sensors(self, date_from: str, date_to: str = None) -> list:
-        r = await self._request(date_from, date_to)
+        dt_from = self._to_date(date_from)
+        dt_to = self._to_date(date_to)
+
+        r = await self._request(dt_from, dt_to)
 
         payload = await r.json()
 
@@ -37,30 +40,6 @@ class HackAIR:
             result.add(item["source_info"]["sensor"]["id"])
 
         return list(result)
-
-    # async def get_pollutant_pm25(self, date_from, date_to: str = None):
-    #     r = await self._request(date_from, date_to)
-
-    #     payload = await r.json()
-
-    #     if payload.get("status_code", 200) != 200:
-    #         print("Error", payload.get("message"))
-    #         return []
-
-    #     result = []
-
-    #     for item in payload.get("data", []):
-    #         if item["pollutant_q"]["name"] == "PM2.5_AirPollutantValue":
-    #             result.append(
-    #                 [
-    #                     float(item["pollutant_q"]["value"]),
-    #                     self.to_epoch(item["date_str"])
-    #                 ]
-    #             )
-
-    #     result = sorted(result, key=itemgetter(1))
-
-    #     return result
 
     async def fetch_pollutant(self, ind: int, name_p: str, dt_from, dt_to):
         """Делает запрос
@@ -105,12 +84,13 @@ class HackAIR:
         Return:
         """
         result = []
+        tasks = []
 
         dt_from = self._to_date(date_from)
         dt_to = self._to_date(date_to)
 
         dt_range = self._get_range_date(dt_from, dt_to)
-        for i in range(dt_range):
+        for i in range(len(dt_range)):
             task = asyncio.ensure_future(
                 self.fetch_pollutant(
                     i, "PM2.5_AirPollutantValue", *dt_range[i]
@@ -126,26 +106,26 @@ class HackAIR:
         return result
 
     async def get_pollutant_pm10(self, date_from, date_to: str = None):
-        r = await self._request(date_from, date_to)
-
-        payload = await r.json()
-
-        if payload.get("status_code", 200) != 200:
-            print("Error", payload.get("message"))
-            return []
-
+        """"""
         result = []
+        tasks = []
 
-        for item in payload.get("data", []):
-            if item["pollutant_q"]["name"] == "PM10_AirPollutantValue":
-                result.append(
-                    [
-                        float(item["pollutant_q"]["value"]),
-                        self.to_epoch(item["date_str"])
-                    ]
+        dt_from = self._to_date(date_from)
+        dt_to = self._to_date(date_to)
+
+        dt_range = self._get_range_date(dt_from, dt_to)
+        for i in range(len(dt_range)):
+            task = asyncio.ensure_future(
+                self.fetch_pollutant(
+                    i, "PM10_AirPollutantValue", *dt_range[i]
                 )
+            )
+            tasks.append(task)
 
-        result = sorted(result, key=itemgetter(1))
+        responses = await asyncio.gather(*tasks)
+
+        for r in sorted(responses, key=itemgetter(0)):
+            result.extend(r[1])
 
         return result
 
@@ -156,13 +136,13 @@ class HackAIR:
         #     dt_format, "%Y-%m-%dT%H:%M:%SZ").timestamp()) * 1000
         # return epoch
 
-    async def _request(self, date_from, date_to):
+    async def _request(self, date_from: datetime, date_to: datetime):
         r = await self.session.get(
             self.url + self.path_measurements,
             headers=self._get_header(),
             params=self._get_params(
-                date_from,
-                timestampEnd=date_to
+                timestampStart=date_from.isoformat(),
+                timestampEnd=date_to.isoformat()
             ),
             data=b""
         )
